@@ -8,4 +8,6 @@ import vn.bank.khieu.entity.Account;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByAccountNumber(String accountNumber);
+
+    boolean existsByAccountNumber(String accountNumber);
 }
