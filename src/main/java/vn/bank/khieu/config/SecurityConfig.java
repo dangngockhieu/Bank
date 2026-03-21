@@ -17,10 +17,13 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 
+        private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
         private final JwtAuthenticationConverter jwtAuthenticationConverter;
 
-        SecurityConfig(JwtAuthenticationConverter jwtAuthenticationConverter) {
+        SecurityConfig(JwtAuthenticationConverter jwtAuthenticationConverter,
+                        CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
                 this.jwtAuthenticationConverter = jwtAuthenticationConverter;
+                this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
         }
 
         @Bean
@@ -53,8 +56,8 @@ public class SecurityConfig {
                                                                 .anyRequest().authenticated())
                                 .oauth2ResourceServer(oauth2 -> oauth2
                                                 .jwt(jwt -> jwt
-                                                                .jwtAuthenticationConverter(
-                                                                                jwtAuthenticationConverter)))
+                                                                .jwtAuthenticationConverter(jwtAuthenticationConverter))
+                                                .authenticationEntryPoint(customAuthenticationEntryPoint))
                                 .exceptionHandling(
                                                 exceptions -> exceptions
                                                                 .authenticationEntryPoint(

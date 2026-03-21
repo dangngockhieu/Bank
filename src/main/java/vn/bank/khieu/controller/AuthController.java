@@ -25,6 +25,7 @@ import vn.bank.khieu.service.AuthService;
 import vn.bank.khieu.service.UserService;
 import vn.bank.khieu.service.user.UserPrincipal;
 import vn.bank.khieu.utils.SecurityUtil;
+import vn.bank.khieu.utils.annotation.ApiMessage;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -40,6 +41,7 @@ public class AuthController {
         private long refreshTokenExpired;
 
         @PostMapping("/login")
+        @ApiMessage("Đăng nhập bằng email và mật khẩu")
         public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
                 // Nạp input vào Spring Security để xác thực
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
@@ -86,6 +88,7 @@ public class AuthController {
         }
 
         @GetMapping("/account")
+        @ApiMessage("Lấy thông tin tài khoản")
         public ResponseEntity<ResLoginDTO.UserInfo> getAccount() {
                 String email = SecurityUtil.getCurrentUserLogin().orElse(null);
                 User user = this.userService.findUserByEmail(email)
@@ -102,6 +105,7 @@ public class AuthController {
         }
 
         @PostMapping("/logout")
+        @ApiMessage("Đăng xuất, xóa token và cookie")
         public ResponseEntity<Void> logout() {
                 String email = SecurityUtil.getCurrentUserLogin().orElse(null);
                 if (email != null) {
@@ -123,6 +127,7 @@ public class AuthController {
         }
 
         @PostMapping("/revoke")
+        @ApiMessage("Thu hồi token")
         public ResponseEntity<Void> revokeToken() {
                 String email = SecurityUtil.getCurrentUserLogin().orElse(null);
                 if (email != null) {
@@ -132,6 +137,7 @@ public class AuthController {
         }
 
         @PostMapping("/refresh")
+        @ApiMessage("Làm mới token")
         public ResponseEntity<ResLoginDTO> refreshAccessToken(@CookieValue(name = "refreshToken") String refreshToken) {
                 if (refreshToken == null || refreshToken.isEmpty())
                         throw new RuntimeException("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
