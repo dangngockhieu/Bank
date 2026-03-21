@@ -53,7 +53,7 @@ public class AuthController {
         @ApiMessage("Đăng nhập bằng email và mật khẩu")
         public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
                 String email = loginDTO.getEmail();
-                String loginFailKey = "bank:fail_count:login:" + email;
+                String loginFailKey = "bank:auth:fail_count:login:" + email;
 
                 // KIỂM TRA XEM CÓ ĐANG BỊ KHÓA DO NHẬP SAI QUÁ NHIỀU KHÔNG
                 String failCountStr = stringRedisTemplate.opsForValue().get(loginFailKey);

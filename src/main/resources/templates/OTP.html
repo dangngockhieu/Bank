@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác thực mã OTP</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background-color: #1a73e8;
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .content {
+            padding: 30px;
+            line-height: 1.6;
+            color: #333333;
+        }
+
+        .otp-code {
+            display: block;
+            width: fit-content;
+            margin: 25px auto;
+            padding: 15px 30px;
+            background-color: #f0f4ff;
+            border: 2px dashed #1a73e8;
+            color: #1a73e8;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 10px;
+            border-radius: 4px;
+        }
+
+        .footer {
+            background-color: #f9f9f9;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #777777;
+        }
+
+        .warning {
+            color: #d93025;
+            font-weight: bold;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin:0;">Bank</h1>
+            <p style="margin:5px 0 0;">An tâm giao dịch - Trọn vẹn niềm tin</p>
+        </div>
+        <div class="content">
+            <p>Xin chào <strong th:text="${name}">Người dùng</strong>,</p>
+            <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. Vui lòng sử dụng mã OTP dưới đây
+                để hoàn tất quy trình:</p>
+
+            <div class="otp-code" th:text="${codeID}">000000</div>
+
+            <p>Mã này có hiệu lực trong vòng <strong>5 phút</strong>. Sau thời gian này, mã sẽ không còn tác dụng.</p>
+
+            <p class="warning">LƯU Ý: Tuyệt đối không cung cấp mã này cho bất kỳ ai, kể cả nhân viên ngân hàng.</p>
+            <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ với bộ phận CSKH để được hỗ
+                trợ.</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Bank System. All rights reserved.</p>
+            <p>TP. Hồ Chí Minh, Việt Nam</p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -50,7 +50,7 @@ public class AuthService {
         User user = this.userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        stringRedisTemplate.delete("bank:session:" + email);
+        stringRedisTemplate.delete("bank:auth:session:" + email);
 
         UserSession session = userSessionRepository.findByUserId(user.getId()).orElse(new UserSession());
         session.setUser(user);
@@ -66,7 +66,7 @@ public class AuthService {
             session.setExpiresAt(Instant.now().plusSeconds(refreshTokenExpired));
 
             stringRedisTemplate.opsForValue().set(
-                    "bank:session:" + email,
+                    "bank:auth:session:" + email,
                     hashedToken,
                     refreshTokenExpired,
                     TimeUnit.SECONDS);
@@ -86,25 +86,26 @@ public class AuthService {
         });
 
         // Mọi request của email này sau đó sẽ bị Filter kiểm tra và chặn lại
-        stringRedisTemplate.opsForValue().set("bank:blacklist:user:" + email, "true", accessTokenExpired,
+        stringRedisTemplate.opsForValue().set("bank:auth:blacklist:" + email, "true", accessTokenExpired,
                 TimeUnit.SECONDS);
 
         // Xóa session cache
-        stringRedisTemplate.delete("bank:session:" + email);
+        stringRedisTemplate.delete("bank:auth:session:" + email);
     }
 
     public void sendEmailResetPassword(String email) {
         User user = this.userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
 
-        String lockKey = "bank:otp:lock:reset_password:" + email;
+        String lockKey = "bank:otp:lock:reset:" + email;
+        String otpKey = "bank:otp:token:reset:" + email;
         if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(lockKey))) {
             Long remain = stringRedisTemplate.getExpire(lockKey, TimeUnit.SECONDS);
             throw new RuntimeException("Vui lòng đợi " + (remain != null ? remain : 0) + " giây để yêu cầu mã mới.");
         }
 
         String otpCode = String.format("%06d", new java.util.Random().nextInt(999999));
-        stringRedisTemplate.opsForValue().set("reset_token:" + email, otpCode, 5, TimeUnit.MINUTES);
+        stringRedisTemplate.opsForValue().set(otpKey, otpCode, 5, TimeUnit.MINUTES);
         stringRedisTemplate.opsForValue().set(lockKey, "true", 5, TimeUnit.MINUTES);
 
         Map<String, Object> variables = new HashMap<>();
@@ -121,7 +122,7 @@ public class AuthService {
         }
 
         String email = dto.getEmail();
-        String otpKey = "reset_token:" + email;
+        String otpKey = "bank:otp:token:reset:" + email;
         String savedOtp = stringRedisTemplate.opsForValue().get(otpKey);
 
         if (savedOtp == null || !savedOtp.equals(dto.getCode())) {
@@ -137,8 +138,8 @@ public class AuthService {
         userRepository.save(user);
 
         // Dọn dẹp
-        stringRedisTemplate.delete("bank:otp:lock:reset_password:" + email);
-        stringRedisTemplate.delete("bank:fail_count:reset_password:" + email);
+        stringRedisTemplate.delete("bank:otp:lock:reset:" + email);
+        stringRedisTemplate.delete("bank:otp:fail_count:reset:" + email);
 
         // Gọi revoke để kích hoạt Blacklist trên Redis
         this.revokeToken(email);

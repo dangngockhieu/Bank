@@ -23,7 +23,7 @@ import vn.bank.khieu.utils.annotation.ApiMessage;
 public class CustomerController {
     private final CustomerService customerService;
 
-    @PostMapping("/create-customer")
+    @PostMapping()
     @ApiMessage("Đăng ký khách hàng mới")
     public ResponseEntity<ResCustomerDTO> CreateNewCustomer(@Valid @RequestBody CreateCustomerDTO dto) {
         ResCustomerDTO res = customerService.registerNewCustomer(dto);
@@ -38,7 +38,7 @@ public class CustomerController {
         return ResponseEntity.ok(res);
     }
 
-    @GetMapping("/customer")
+    @GetMapping()
     @ApiMessage("Lấy thông tin khách hàng")
     public ResponseEntity<ResCustomerDTO> getCustomerProfile(@RequestParam String keyword) {
         ResCustomerDTO res = customerService.findCustomer(keyword);

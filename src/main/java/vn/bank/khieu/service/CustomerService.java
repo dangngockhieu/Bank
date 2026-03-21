@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
 import vn.bank.khieu.dto.request.customer.CreateCustomerDTO;
+import vn.bank.khieu.dto.response.customer.ResBalanceDTO;
 import vn.bank.khieu.dto.response.customer.ResCustomerDTO;
 import vn.bank.khieu.entity.Account;
 import vn.bank.khieu.entity.Customer;
@@ -109,7 +110,7 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public ResCustomerDTO getMyAccountCustomer(String email) {
-        String cacheKey = "bank:profile:cache:" + email;
+        String cacheKey = "bank:customer:profile:" + email;
 
         // Kiểm tra trong Redis trước
         try {
@@ -147,4 +148,12 @@ public class CustomerService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
     }
 
+    @Transactional(readOnly = true)
+    public ResBalanceDTO getMyBalance(String email) {
+
+        ResBalanceDTO dto = accountRepository.findBalanceByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+
+        return dto;
+    }
 }
