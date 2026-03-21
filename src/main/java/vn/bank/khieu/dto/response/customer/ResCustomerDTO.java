@@ -17,4 +17,5 @@ public class ResCustomerDTO {
     private String phoneNumber;
     private String address;
     private String accountNumber;
+    private Boolean active;
 }

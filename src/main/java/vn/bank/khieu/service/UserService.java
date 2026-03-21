@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import vn.bank.khieu.dto.request.user.CreateEmployeeDTO;
@@ -71,6 +72,7 @@ public class UserService {
 
     }
 
+    @Transactional(readOnly = true)
     public PageResponseDTO<ResEmployeeDTO> getAllEmployees(Pageable pageable, String keyword) {
         Specification<User> spec = GenericSpecification.<User>equal("active", true);
         spec = spec.and(GenericSpecification.<User>equal("role.name", RoleName.ROLE_TELLER.name()));

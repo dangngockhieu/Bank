@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import vn.bank.khieu.dto.request.auth.EmailDTO;
 import vn.bank.khieu.dto.request.auth.LoginDTO;
 import vn.bank.khieu.dto.request.auth.ResetPasswordDTO;
 import vn.bank.khieu.dto.response.ResStringDTO;
@@ -52,16 +53,14 @@ public class AuthController {
         @ApiMessage("Đăng nhập bằng email và mật khẩu")
         public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
                 String email = loginDTO.getEmail();
-                String loginFailKey = "fail_count:login:" + email;
+                String loginFailKey = "bank:fail_count:login:" + email;
 
                 // KIỂM TRA XEM CÓ ĐANG BỊ KHÓA DO NHẬP SAI QUÁ NHIỀU KHÔNG
                 String failCountStr = stringRedisTemplate.opsForValue().get(loginFailKey);
                 if (failCountStr != null && Integer.parseInt(failCountStr) >= 5) {
-                        Long remainSeconds = stringRedisTemplate.getExpire(loginFailKey, TimeUnit.SECONDS);
-                        long minutes = (remainSeconds != null) ? remainSeconds / 60 : 30;
-                        throw new RuntimeException(String.format(
-                                        "Tài khoản bị tạm khóa do nhập sai pass quá 5 lần. Vui lòng quay lại sau %d phút.",
-                                        minutes));
+                        Long remain = stringRedisTemplate.getExpire(loginFailKey, TimeUnit.MINUTES);
+                        throw new RuntimeException("Tài khoản bị khóa. Vui lòng thử lại sau "
+                                        + (remain != null ? remain : 0) + " phút.");
                 }
 
                 try {
@@ -166,9 +165,10 @@ public class AuthController {
 
         @PostMapping("/revoke")
         @ApiMessage("Nhân viên thu hồi quyền truy cập của khách hàng")
-        public ResponseEntity<ResStringDTO> revokeToken(@RequestBody String targetEmail) {
-                this.authService.revokeToken(targetEmail);
-                return ResponseEntity.ok().body(new ResStringDTO("Đã thu hồi quyền truy cập của " + targetEmail));
+        public ResponseEntity<ResStringDTO> revokeToken(@Valid @RequestBody EmailDTO emailDTO) {
+                this.authService.revokeToken(emailDTO.getEmail());
+                return ResponseEntity.ok()
+                                .body(new ResStringDTO("Đã thu hồi quyền truy cập của " + emailDTO.getEmail()));
         }
 
         @PostMapping("/refresh-token")
@@ -197,8 +197,8 @@ public class AuthController {
 
         @PostMapping("/send-reset-password-email")
         @ApiMessage("Gửi email đặt lại mật khẩu")
-        public ResponseEntity<ResStringDTO> sendResetPasswordEmail(@RequestBody String email) {
-                this.authService.sendEmailResetPassword(email);
+        public ResponseEntity<ResStringDTO> sendResetPasswordEmail(@Valid @RequestBody EmailDTO emailDTO) {
+                this.authService.sendEmailResetPassword(emailDTO.getEmail());
                 return ResponseEntity.ok().body(new ResStringDTO("Email đặt lại mật khẩu đã được gửi"));
         }
 
