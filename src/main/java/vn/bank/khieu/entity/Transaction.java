@@ -2,12 +2,13 @@ package vn.bank.khieu.entity;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -17,6 +18,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.bank.khieu.enums.TransactionStatus;
 import vn.bank.khieu.enums.TransactionType;
+import vn.bank.khieu.utils.annotation.Uuid7Id;
 
 @Entity
 @Table(name = "transactions")
@@ -26,10 +28,16 @@ import vn.bank.khieu.enums.TransactionType;
 @AllArgsConstructor
 public class Transaction {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    @Uuid7Id
+    @Column(columnDefinition = "BINARY(16)")
+    private UUID id;
 
     private String transactionCode; // Vd: VCB123456
+
+    private String createdBy;
+
+    private String description;
 
     @Enumerated(EnumType.STRING)
     private TransactionType type; // DEPOSIT, WITHDRAW, TRANSFER
@@ -46,10 +54,4 @@ public class Transaction {
     private TransactionStatus status; // PENDING , SUCCESS, REJECTED
 
     private Instant createdAt = Instant.now();
-
-    @ManyToOne
-    private User maker; // Teller lập lệnh tại quầy
-
-    @ManyToOne
-    private User checker; // Manager duyệt lệnh
 }

@@ -1,6 +1,7 @@
 package vn.bank.khieu.dto.response.auth;
 
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,8 +14,7 @@ public class ResLoginDTO {
     private String accessToken;
     private ResLoginDTO.UserInfo user;
 
-    @Getter
-    @Setter
+    @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UserInfo {

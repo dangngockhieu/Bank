@@ -48,16 +48,16 @@ public class SecurityUtil {
     @Value("${refresh-token-validity-in-seconds}")
     private long refreshTokenExpired;
 
-    public String createAccessToken(String email, ResLoginDTO res) {
+    public String createAccessToken(String email, ResLoginDTO.UserInfo res) {
         Instant now = Instant.now();
         Instant validity = now.plus(this.accessTokenExpired, ChronoUnit.SECONDS);
 
-        String userRole = res.getUser().getRole();
+        String userRole = res.getRole();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuedAt(now)
                 .expiresAt(validity)
                 .subject(email)
-                .claim("uid", res.getUser().getId())
+                .claim("uid", res.getId())
                 // Chỉ chứa danh sách quyền (Roles/Permissions)
                 .claim("role", userRole)
                 .build();
