@@ -1,4 +1,6 @@
-package vn.bank.khieu.dto.response.customer;
+package vn.bank.khieu.dto.response.user;
+
+import java.time.Instant;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,12 +11,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResCreateCustomerDTO {
+public class ResEmployeeDTO {
     private Long id;
     private String email;
     private String fullName;
-    private String identityCard;
-    private String phoneNumber;
-    private String address;
-    private String accountNumber;
+    private Instant createdAt;
 }

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import vn.bank.khieu.dto.request.customer.CreateCustomerDTO;
-import vn.bank.khieu.dto.response.customer.ResCreateCustomerDTO;
+import vn.bank.khieu.dto.response.customer.ResCustomerDTO;
 import vn.bank.khieu.entity.Account;
 import vn.bank.khieu.entity.Customer;
 import vn.bank.khieu.entity.Role;
@@ -40,7 +40,7 @@ public class CustomerService {
     }
 
     @Transactional
-    public ResCreateCustomerDTO registerNewCustomer(CreateCustomerDTO dto) {
+    public ResCustomerDTO registerNewCustomer(CreateCustomerDTO dto) {
         // Tạo và lưu User (Đăng nhập)
         User user = new User();
         user.setFullName(dto.getFullName());
@@ -68,7 +68,7 @@ public class CustomerService {
         account.setCustomer(customer);
         accountRepository.save(account);
 
-        return new ResCreateCustomerDTO(
+        return new ResCustomerDTO(
                 customer.getId(),
                 user.getEmail(),
                 user.getFullName(),

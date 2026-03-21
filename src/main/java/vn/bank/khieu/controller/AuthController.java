@@ -25,6 +25,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.bank.khieu.dto.request.auth.LoginDTO;
 import vn.bank.khieu.dto.request.auth.ResetPasswordDTO;
+import vn.bank.khieu.dto.response.ResStringDTO;
 import vn.bank.khieu.dto.response.auth.ResLoginDTO;
 import vn.bank.khieu.entity.User;
 import vn.bank.khieu.service.AuthService;
@@ -51,7 +52,7 @@ public class AuthController {
         @ApiMessage("Đăng nhập bằng email và mật khẩu")
         public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
                 String email = loginDTO.getEmail();
-                String loginFailKey = "login_fail_count:" + email;
+                String loginFailKey = "fail_count:login:" + email;
 
                 // KIỂM TRA XEM CÓ ĐANG BỊ KHÓA DO NHẬP SAI QUÁ NHIỀU KHÔNG
                 String failCountStr = stringRedisTemplate.opsForValue().get(loginFailKey);
@@ -165,12 +166,12 @@ public class AuthController {
 
         @PostMapping("/revoke")
         @ApiMessage("Nhân viên thu hồi quyền truy cập của khách hàng")
-        public ResponseEntity<Void> revokeToken(@RequestBody String targetEmail) {
+        public ResponseEntity<ResStringDTO> revokeToken(@RequestBody String targetEmail) {
                 this.authService.revokeToken(targetEmail);
-                return ResponseEntity.ok().build();
+                return ResponseEntity.ok().body(new ResStringDTO("Đã thu hồi quyền truy cập của " + targetEmail));
         }
 
-        @PostMapping("/refresh")
+        @PostMapping("/refresh-token")
         @ApiMessage("Làm mới token")
         public ResponseEntity<ResLoginDTO> refreshAccessToken(@CookieValue(name = "refreshToken") String refreshToken) {
                 if (refreshToken == null || refreshToken.isEmpty())
@@ -196,15 +197,15 @@ public class AuthController {
 
         @PostMapping("/send-reset-password-email")
         @ApiMessage("Gửi email đặt lại mật khẩu")
-        public ResponseEntity<Void> sendResetPasswordEmail(@RequestBody String email) {
+        public ResponseEntity<ResStringDTO> sendResetPasswordEmail(@RequestBody String email) {
                 this.authService.sendEmailResetPassword(email);
-                return ResponseEntity.ok().build();
+                return ResponseEntity.ok().body(new ResStringDTO("Email đặt lại mật khẩu đã được gửi"));
         }
 
         @PatchMapping("/reset-password")
         @ApiMessage("Đặt lại mật khẩu")
-        public ResponseEntity<Void> resetPassword(@RequestBody @Valid ResetPasswordDTO resetPasswordDTO) {
+        public ResponseEntity<ResStringDTO> resetPassword(@RequestBody @Valid ResetPasswordDTO resetPasswordDTO) {
                 this.authService.resetPassword(resetPasswordDTO);
-                return ResponseEntity.ok().build();
+                return ResponseEntity.ok().body(new ResStringDTO("Mật khẩu đã được đặt lại thành công"));
         }
 }

@@ -50,19 +50,29 @@ public class AuthService {
         User user = this.userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Lưu DB
-        UserSession session = userSessionRepository.findByUserId(user.getId()).orElse(new UserSession());
-        String hashedToken = SecurityUtil.hashWithSHA256(refreshToken);
-        session.setRefreshToken(hashedToken);
-        session.setExpiresAt(Instant.now().plusSeconds(refreshTokenExpired));
-        userSessionRepository.save(session);
+        stringRedisTemplate.delete("session:" + email);
 
-        // Đẩy lên Redis để truy xuất nhanh (Key: email, Value: hashedToken)
-        stringRedisTemplate.opsForValue().set(
-                "session:" + email,
-                hashedToken,
-                refreshTokenExpired,
-                TimeUnit.SECONDS);
+        UserSession session = userSessionRepository.findByUserId(user.getId()).orElse(new UserSession());
+        session.setUser(user);
+
+        if (refreshToken == null) {
+            session.setRefreshToken(null);
+            session.setRevoked(true);
+            session.setExpiresAt(Instant.now());
+        } else {
+            String hashedToken = SecurityUtil.hashWithSHA256(refreshToken);
+            session.setRefreshToken(hashedToken);
+            session.setRevoked(false);
+            session.setExpiresAt(Instant.now().plusSeconds(refreshTokenExpired));
+
+            stringRedisTemplate.opsForValue().set(
+                    "session:" + email,
+                    hashedToken,
+                    refreshTokenExpired,
+                    TimeUnit.SECONDS);
+        }
+
+        userSessionRepository.save(session);
     }
 
     public void revokeToken(String email) {
@@ -88,8 +98,8 @@ public class AuthService {
         User user = this.userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại trên hệ thống"));
 
-        String lockKey = "otp_resetPassword_lock:" + email;
-        String dailyCountKey = "otp_resetPassword_count:" + email + ":" + java.time.LocalDate.now();
+        String lockKey = "otp:lock:reset_password:" + email;
+        String dailyCountKey = "fail_count:reset_password:" + email + ":" + java.time.LocalDate.now();
 
         // CHỐNG SPAM GỬI LIÊN TỤC (Khóa 5 phút)
         if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(lockKey))) {
@@ -138,7 +148,7 @@ public class AuthService {
         }
 
         String email = dto.getEmail();
-        String failCountKey = "otp_fail_count:" + email;
+        String failCountKey = "fail_count:reset_password:" + email;
 
         // KIỂM TRA SỐ LẦN NHẬP SAI ---
         String failCountStr = stringRedisTemplate.opsForValue().get(failCountKey);
@@ -187,7 +197,7 @@ public class AuthService {
         // DỌN DẸP REDIS
         stringRedisTemplate.delete(otpKey); // Xóa mã OTP
         stringRedisTemplate.delete(failCountKey); // Xóa biến đếm sai
-        stringRedisTemplate.delete("otp_resetPassword_lock:" + email); // Mở khóa gửi mail
+        stringRedisTemplate.delete("otp:lock:reset_password:" + email); // Mở khóa gửi mail
 
         // Đăng xuất tất cả thiết bị
         this.revokeToken(email);

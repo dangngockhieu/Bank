@@ -1,5 +1,7 @@
 package vn.bank.khieu.entity;
 
+import java.time.Instant;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,4 +45,6 @@ public class User {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
+
+    private Instant createdAt = Instant.now();
 }
