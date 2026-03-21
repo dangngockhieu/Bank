@@ -1,9 +1,13 @@
 package vn.bank.khieu.controller;
 
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
@@ -11,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.bank.khieu.dto.request.auth.LoginDTO;
+import vn.bank.khieu.dto.request.auth.ResetPasswordDTO;
 import vn.bank.khieu.dto.response.auth.ResLoginDTO;
 import vn.bank.khieu.entity.User;
 import vn.bank.khieu.service.AuthService;
@@ -36,6 +42,7 @@ public class AuthController {
         private final SecurityUtil securityUtil;
         private final AuthService authService;
         private final UserService userService;
+        private final StringRedisTemplate stringRedisTemplate;
 
         @Value("${refresh-token-validity-in-seconds}")
         private long refreshTokenExpired;
@@ -43,48 +50,78 @@ public class AuthController {
         @PostMapping("/login")
         @ApiMessage("Đăng nhập bằng email và mật khẩu")
         public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
-                // Nạp input vào Spring Security để xác thực
-                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                                loginDTO.getEmail(), loginDTO.getPassword());
+                String email = loginDTO.getEmail();
+                String loginFailKey = "login_fail_count:" + email;
 
-                // Xác thực (Sẽ gọi UserDetailsCustom để load user từ DB)
-                Authentication authentication = authenticationManagerBuilder.getObject()
-                                .authenticate(authenticationToken);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                // KIỂM TRA XEM CÓ ĐANG BỊ KHÓA DO NHẬP SAI QUÁ NHIỀU KHÔNG
+                String failCountStr = stringRedisTemplate.opsForValue().get(loginFailKey);
+                if (failCountStr != null && Integer.parseInt(failCountStr) >= 5) {
+                        Long remainSeconds = stringRedisTemplate.getExpire(loginFailKey, TimeUnit.SECONDS);
+                        long minutes = (remainSeconds != null) ? remainSeconds / 60 : 30;
+                        throw new RuntimeException(String.format(
+                                        "Tài khoản bị tạm khóa do nhập sai pass quá 5 lần. Vui lòng quay lại sau %d phút.",
+                                        minutes));
+                }
 
-                UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-                ResLoginDTO.UserInfo userInfo = new ResLoginDTO.UserInfo(
-                                principal.getId(),
-                                principal.getEmail(),
-                                principal.getFullName(),
-                                principal.isActive(),
-                                principal.getRole());
+                try {
+                        // Nạp input vào Spring Security để xác thực
+                        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                                        email, loginDTO.getPassword());
 
-                ResLoginDTO res = new ResLoginDTO();
-                res.setUser(userInfo);
+                        Authentication authentication = authenticationManagerBuilder.getObject()
+                                        .authenticate(authenticationToken);
 
-                // Tạo Access Token
-                String accessToken = this.securityUtil.createAccessToken(loginDTO.getEmail(), res.getUser());
-                res.setAccessToken(accessToken);
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                // Tạo Refresh Token (Chỉ chứa Email và UserId)
-                String refreshToken = this.securityUtil.createRefreshToken(loginDTO.getEmail(), principal.getId());
+                        // Nếu Login success Xóa biến đếm sai
+                        stringRedisTemplate.delete(loginFailKey);
 
-                // LƯU VÀO DATABASE thông qua AuthService
-                this.authService.updateUserToken(loginDTO.getEmail(), refreshToken);
+                        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+                        ResLoginDTO.UserInfo userInfo = new ResLoginDTO.UserInfo(
+                                        principal.getId(),
+                                        principal.getEmail(),
+                                        principal.getFullName(),
+                                        principal.isActive(),
+                                        principal.getRole());
 
-                // Thiết lập Cookie để trả về cho trình duyệt
-                ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
-                                .httpOnly(true)
-                                .secure(false)
-                                .path("/")
-                                // .maxAge(refreshTokenExpired)
-                                .sameSite("Strict")
-                                .build();
+                        ResLoginDTO res = new ResLoginDTO();
+                        res.setUser(userInfo);
 
-                return ResponseEntity.ok()
-                                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-                                .body(res);
+                        String accessToken = this.securityUtil.createAccessToken(email, res.getUser());
+                        res.setAccessToken(accessToken);
+                        String refreshToken = this.securityUtil.createRefreshToken(email, principal.getId());
+
+                        this.authService.updateUserToken(email, refreshToken);
+
+                        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
+                                        .httpOnly(true)
+                                        .secure(false)
+                                        .path("/")
+                                        .maxAge(refreshTokenExpired)
+                                        .sameSite("Strict")
+                                        .build();
+
+                        return ResponseEntity.ok()
+                                        .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                                        .body(res);
+
+                } catch (BadCredentialsException e) {
+                        // NẾU ĐĂNG NHẬP THẤT BẠI
+                        Long currentFail = stringRedisTemplate.opsForValue().increment(loginFailKey);
+
+                        if (currentFail != null && currentFail == 1) {
+                                stringRedisTemplate.expire(loginFailKey, 30, TimeUnit.MINUTES);
+                        }
+
+                        if (currentFail != null && currentFail >= 5) {
+                                stringRedisTemplate.expire(loginFailKey, 30, TimeUnit.MINUTES);
+                                throw new RuntimeException(
+                                                "Bạn đã nhập sai 5 lần. Tài khoản bị khóa đăng nhập trong 30 phút.");
+                        }
+
+                        throw new RuntimeException(
+                                        "Mật khẩu không chính xác. Bạn còn " + (5 - currentFail) + " lần thử.");
+                }
         }
 
         @GetMapping("/account")
@@ -127,12 +164,9 @@ public class AuthController {
         }
 
         @PostMapping("/revoke")
-        @ApiMessage("Thu hồi token")
-        public ResponseEntity<Void> revokeToken() {
-                String email = SecurityUtil.getCurrentUserLogin().orElse(null);
-                if (email != null) {
-                        this.authService.revokeToken(email);
-                }
+        @ApiMessage("Nhân viên thu hồi quyền truy cập của khách hàng")
+        public ResponseEntity<Void> revokeToken(@RequestBody String targetEmail) {
+                this.authService.revokeToken(targetEmail);
                 return ResponseEntity.ok().build();
         }
 
@@ -158,5 +192,19 @@ public class AuthController {
                 String accessToken = this.securityUtil.createAccessToken(email, res.getUser());
                 res.setAccessToken(accessToken);
                 return ResponseEntity.ok(res);
+        }
+
+        @PostMapping("/send-reset-password-email")
+        @ApiMessage("Gửi email đặt lại mật khẩu")
+        public ResponseEntity<Void> sendResetPasswordEmail(@RequestBody String email) {
+                this.authService.sendEmailResetPassword(email);
+                return ResponseEntity.ok().build();
+        }
+
+        @PatchMapping("/reset-password")
+        @ApiMessage("Đặt lại mật khẩu")
+        public ResponseEntity<Void> resetPassword(@RequestBody @Valid ResetPasswordDTO resetPasswordDTO) {
+                this.authService.resetPassword(resetPasswordDTO);
+                return ResponseEntity.ok().build();
         }
 }

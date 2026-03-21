@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -19,11 +20,13 @@ public class SecurityConfig {
 
         private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
         private final JwtAuthenticationConverter jwtAuthenticationConverter;
+        private final JwtBlacklistFilter jwtBlacklistFilter;
 
-        SecurityConfig(JwtAuthenticationConverter jwtAuthenticationConverter,
-                        CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
-                this.jwtAuthenticationConverter = jwtAuthenticationConverter;
+        public SecurityConfig(CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+                        JwtAuthenticationConverter jwtAuthenticationConverter, JwtBlacklistFilter jwtBlacklistFilter) {
                 this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
+                this.jwtAuthenticationConverter = jwtAuthenticationConverter;
+                this.jwtBlacklistFilter = jwtBlacklistFilter;
         }
 
         @Bean
@@ -54,6 +57,7 @@ public class SecurityConfig {
 
                                                                 .requestMatchers("/").permitAll()
                                                                 .anyRequest().authenticated())
+                                .addFilterAfter(jwtBlacklistFilter, BearerTokenAuthenticationFilter.class)
                                 .oauth2ResourceServer(oauth2 -> oauth2
                                                 .jwt(jwt -> jwt
                                                                 .jwtAuthenticationConverter(jwtAuthenticationConverter))

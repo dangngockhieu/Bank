@@ -2,6 +2,7 @@ package vn.bank.khieu.service;
 
 import java.math.BigDecimal;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -27,19 +28,15 @@ public class CustomerService {
     private final RoleRepository roleRepository;
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    private String createUniqueAccountNumber() {
-        String accountNumber;
-        boolean isExisted;
-
-        do {
-            // Tạo số ngẫu nhiên 10 chữ số
-            accountNumber = String.valueOf((long) (Math.random() * 9_000_000_000L) + 1_000_000_000L);
-            // Kiểm tra trong Database
-            isExisted = accountRepository.existsByAccountNumber(accountNumber);
-        } while (isExisted);
-
-        return accountNumber;
+    public String createUniqueAccountNumber() {
+        Long nextId = stringRedisTemplate.opsForValue().increment("bank:account:next_id");
+        if (nextId == null || nextId == 1) {
+            stringRedisTemplate.opsForValue().set("bank:account:next_id", "1000000001");
+            return "1000000001";
+        }
+        return String.valueOf(nextId);
     }
 
     @Transactional

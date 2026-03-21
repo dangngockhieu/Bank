@@ -9,8 +9,6 @@ import vn.bank.khieu.entity.User;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
-    Optional<User> findByEmailAndRefreshToken(String email, String refreshToken);
-
     boolean existsByEmail(String email);
 
 }
