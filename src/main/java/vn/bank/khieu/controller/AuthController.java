@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import vn.bank.khieu.dto.request.auth.EmailDTO;
+import vn.bank.khieu.dto.request.EmailDTO;
 import vn.bank.khieu.dto.request.auth.LoginDTO;
 import vn.bank.khieu.dto.request.auth.ResetPasswordDTO;
 import vn.bank.khieu.dto.response.ResStringDTO;

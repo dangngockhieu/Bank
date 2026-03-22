@@ -1,4 +1,4 @@
-package vn.bank.khieu.dto.request.auth;
+package vn.bank.khieu.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class TransactionOTP extends TransferDTO {
+public class TranferOTP extends TransferDTO {
     @NotBlank(message = "Mã OTP không được để trống")
     @Size(min = 6, max = 6, message = "Mã OTP phải bao gồm đúng 6 chữ số")
     private String otpCode;

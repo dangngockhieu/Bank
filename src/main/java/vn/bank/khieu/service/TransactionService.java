@@ -5,7 +5,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import vn.bank.khieu.dto.request.transaction.transfer.TransactionOTP;
+import vn.bank.khieu.dto.request.EmailDTO;
+import vn.bank.khieu.dto.request.transaction.deposit_withdrawal.TransactionDTO;
+import vn.bank.khieu.dto.request.transaction.deposit_withdrawal.TransactionOTP;
+import vn.bank.khieu.dto.request.transaction.transfer.TranferOTP;
 import vn.bank.khieu.dto.request.transaction.transfer.TransferDTO;
 import vn.bank.khieu.entity.Account;
 import vn.bank.khieu.entity.User;
@@ -46,7 +49,7 @@ public class TransactionService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void confirmTransfer(String senderEmail, TransactionOTP dto) {
+    public void confirmTransfer(String senderEmail, TranferOTP dto) {
         String transactionCode = "TRF-" + System.currentTimeMillis();
         Account senderAccount = null;
         Account recipientAccount = null;
@@ -88,7 +91,7 @@ public class TransactionService {
 
             // Tạo thông báo cho NGƯỜI GỬI (Trừ tiền)
             String senderContent = String.format(
-                    "Tài khoản %s bị trừ -%s VND. Nội dung: %s",
+                    "Tài khoản %s bị trừ %s VND. Nội dung: %s",
                     senderAccount.getAccountNumber(),
                     dto.getAmount().toString(),
                     dto.getDescription());
@@ -96,7 +99,7 @@ public class TransactionService {
 
             // Tạo thông báo cho NGƯỜI NHẬN (Cộng tiền)
             String recipientContent = String.format(
-                    "Tài khoản %s được cộng +%s VND từ tài khoản %s. Nội dung: %s",
+                    "Tài khoản %s được cộng %s VND từ tài khoản %s. Nội dung: %s",
                     recipientAccount.getAccountNumber(),
                     dto.getAmount().toString(),
                     senderAccount.getAccountNumber(),
@@ -108,8 +111,129 @@ public class TransactionService {
 
             // Ghi log REJECTED nếu đã lấy được thông tin tài khoản
             transactionHistoryService.logTransaction(
-                    transactionCode, senderEmail, e.getMessage(), TransactionType.TRANSFER,
+                    transactionCode, null, e.getMessage(), TransactionType.TRANSFER,
                     senderAccount, recipientAccount, dto.getAmount(), TransactionStatus.REJECTED);
+
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public void initiateDeposit(EmailDTO emailDTO) {
+        accountRepository.findByCustomerUserEmail(emailDTO.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản khách hàng"));
+        // Gửi OTP
+        otpUtil.sendEmailOTP(emailDTO.getEmail());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void confirmDeposit(String tellerEmail, TransactionOTP dto) {
+        String transactionCode = "TRF-" + System.currentTimeMillis();
+        Account account = null;
+
+        try {
+            // Xác thực OTP
+            if (!otpUtil.verifyOTP(dto.getCustomerEmail(), dto.getOtpCode())) {
+                throw new IllegalArgumentException("Mã OTP không chính xác hoặc đã hết hạn");
+            }
+
+            // Lấy thông tin tài khoản
+            account = accountRepository.findByCustomerUserEmail(dto.getCustomerEmail())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản khách hàng"));
+
+            // Cộng tiền (BigDecimal)
+            account.setBalance(account.getBalance().add(dto.getAmount()));
+
+            // Lưu vào DB (Kích hoạt @Version Optimistic Locking)
+            accountRepository.save(account);
+
+            // Ghi log SUCCESS
+            transactionHistoryService.logTransaction(
+                    transactionCode, tellerEmail, dto.getDescription(), TransactionType.DEPOSIT,
+                    null, account, dto.getAmount(), TransactionStatus.SUCCESS);
+
+            // Tạo thông báo biến động số dư cho cả customer
+            User user = account.getCustomer().getUser();
+
+            // Tạo thông báo cho Customer (Trừ tiền)
+            String content = String.format(
+                    "Tài khoản %s đã cộng %s VND. Nội dung: %s",
+                    account.getAccountNumber(),
+                    dto.getAmount().toString(),
+                    dto.getDescription());
+            notificationService.createNotification(user, "Biến động số dư", content);
+
+        } catch (Exception e) {
+            log.error("Giao dịch nộp tiền thất bại: {}", e.getMessage());
+
+            // Ghi log REJECTED nếu đã lấy được thông tin tài khoản
+            transactionHistoryService.logTransaction(
+                    transactionCode, tellerEmail, e.getMessage(), TransactionType.DEPOSIT,
+                    null, account, dto.getAmount(), TransactionStatus.REJECTED);
+
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public void initiateWithdrawal(TransactionDTO dto) {
+        Account account = accountRepository.findByCustomerUserEmail(dto.getCustomerEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản khách hàng"));
+
+        if (account.getBalance().compareTo(dto.getAmount()) < 0) {
+            throw new IllegalArgumentException("Số dư không đủ để thực hiện giao dịch");
+        }
+        // Gửi OTP
+        otpUtil.sendEmailOTP(dto.getCustomerEmail());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void confirmWithdrawal(String tellerEmail, TransactionOTP dto) {
+        String transactionCode = "TRF-" + System.currentTimeMillis();
+        Account account = null;
+
+        try {
+            // Xác thực OTP
+            if (!otpUtil.verifyOTP(dto.getCustomerEmail(), dto.getOtpCode())) {
+                throw new IllegalArgumentException("Mã OTP không chính xác hoặc đã hết hạn");
+            }
+
+            // Lấy thông tin tài khoản
+            account = accountRepository.findByCustomerUserEmail(dto.getCustomerEmail())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản khách hàng"));
+
+            // Kiểm tra lại số dư
+            if (account.getBalance().compareTo(dto.getAmount()) < 0) {
+                throw new IllegalArgumentException("Số dư không đủ để thực hiện giao dịch");
+            }
+
+            // Trừ tiền (BigDecimal)
+            account.setBalance(account.getBalance().subtract(dto.getAmount()));
+
+            // Lưu vào DB (Kích hoạt @Version Optimistic Locking)
+            accountRepository.save(account);
+
+            // Ghi log SUCCESS
+            transactionHistoryService.logTransaction(
+                    transactionCode, tellerEmail, dto.getDescription(), TransactionType.WITHDRAW,
+                    account, null, dto.getAmount(), TransactionStatus.SUCCESS);
+
+            // Tạo thông báo biến động số dư cho cả customer
+            User user = account.getCustomer().getUser();
+
+            // Tạo thông báo cho NGƯỜI GỬI (Trừ tiền)
+            String content = String.format(
+                    "Tài khoản %s đã trừ %s VND. Nội dung: %s",
+                    account.getAccountNumber(),
+                    dto.getAmount().toString(),
+                    dto.getDescription());
+            notificationService.createNotification(user, "Biến động số dư", content);
+
+        } catch (Exception e) {
+            log.error("Giao dịch rút tiền thất bại: {}", e.getMessage());
+
+            // Ghi log REJECTED nếu đã lấy được thông tin tài khoản
+            transactionHistoryService.logTransaction(
+                    transactionCode, tellerEmail, e.getMessage(), TransactionType.WITHDRAW,
+                    account, null, dto.getAmount(), TransactionStatus.REJECTED);
 
             throw new RuntimeException(e.getMessage());
         }
