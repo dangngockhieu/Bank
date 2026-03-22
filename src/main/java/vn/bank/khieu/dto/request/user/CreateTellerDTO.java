@@ -12,7 +12,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateEmployeeDTO {
+public class CreateTellerDTO {
     @NotBlank(message = "Email không được để trống")
     @Pattern(regexp = "^[A-Za-z0-9+_.-]+@(.+)$", message = "Email không hợp lệ")
     private String email;

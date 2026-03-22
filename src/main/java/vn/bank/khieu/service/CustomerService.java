@@ -70,7 +70,7 @@ public class CustomerService {
         // Tạo và lưu Account
         Account account = new Account();
         account.setAccountNumber(createUniqueAccountNumber());
-        account.setBalance(BigDecimal.ZERO);
+        account.setBalance(dto.getInitialBalance() != null ? dto.getInitialBalance() : BigDecimal.ZERO);
         account.setCustomer(customer);
         accountRepository.save(account);
 

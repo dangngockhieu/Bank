@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.bank.khieu.dto.request.customer.CreateCustomerDTO;
+import vn.bank.khieu.dto.response.customer.ResBalanceDTO;
 import vn.bank.khieu.dto.response.customer.ResCustomerDTO;
 import vn.bank.khieu.service.CustomerService;
 import vn.bank.khieu.utils.SecurityUtil;
@@ -42,6 +43,14 @@ public class CustomerController {
     @ApiMessage("Lấy thông tin khách hàng")
     public ResponseEntity<ResCustomerDTO> getCustomerProfile(@RequestParam String keyword) {
         ResCustomerDTO res = customerService.findCustomer(keyword);
+        return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/balance")
+    @ApiMessage("Lấy số dư tài khoản của khách hàng đang đăng nhập")
+    public ResponseEntity<ResBalanceDTO> getMyBalance() {
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+        ResBalanceDTO res = customerService.getMyBalance(email);
         return ResponseEntity.ok(res);
     }
 }

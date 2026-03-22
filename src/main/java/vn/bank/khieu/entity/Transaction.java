@@ -31,7 +31,7 @@ public class Transaction {
     @Id
     @GeneratedValue
     @Uuid7Id
-    @Column(columnDefinition = "BINARY(16)")
+    @Column(columnDefinition = "uuid")
     private UUID id;
 
     private String transactionCode; // Vd: VCB123456
@@ -49,6 +49,7 @@ public class Transaction {
     @ManyToOne(fetch = FetchType.LAZY)
     private Account toAccount; // Null nếu rút tiền mặt
 
+    @Column(precision = 15, scale = 2)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)

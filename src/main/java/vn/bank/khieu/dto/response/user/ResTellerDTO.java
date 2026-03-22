@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResEmployeeDTO {
+public class ResTellerDTO {
     private Long id;
     private String email;
     private String fullName;

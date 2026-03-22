@@ -14,7 +14,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     boolean existsByAccountNumber(String accountNumber);
 
-    @Query("SELECT account_number as accountNumber, balance FROM Account a JOIN a.customer c JOIN c.user u WHERE u.email = :email")
+    @Query("SELECT a.id as id, a.accountNumber as accountNumber, a.balance as balance FROM Account a JOIN a.customer c JOIN c.user u WHERE u.email = :email")
     Optional<ResBalanceDTO> findBalanceByEmail(@Param("email") String email);
 
     @Query("SELECT a FROM Account a JOIN a.customer c JOIN c.user u WHERE u.email = :email")

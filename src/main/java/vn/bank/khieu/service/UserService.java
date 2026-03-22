@@ -7,15 +7,17 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
-import vn.bank.khieu.dto.request.user.CreateEmployeeDTO;
+import vn.bank.khieu.dto.request.user.CreateTellerDTO;
 import vn.bank.khieu.dto.request.user.UpdatePasswordDTO;
+import vn.bank.khieu.dto.request.user.UpdateUserInforDTO;
 import vn.bank.khieu.dto.response.PageResponseDTO;
-import vn.bank.khieu.dto.response.user.ResEmployeeDTO;
+import vn.bank.khieu.dto.response.user.ResTellerDTO;
 import vn.bank.khieu.entity.Role;
 import vn.bank.khieu.entity.User;
 import vn.bank.khieu.enums.RoleName;
@@ -27,6 +29,7 @@ import vn.bank.khieu.utils.GenericSpecification;
 @RequiredArgsConstructor
 @Service
 public class UserService {
+    private final StringRedisTemplate stringRedisTemplate;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
@@ -51,7 +54,7 @@ public class UserService {
         this.userRepository.save(existingUser);
     }
 
-    public ResEmployeeDTO registerNewEmployee(CreateEmployeeDTO dto) {
+    public ResTellerDTO registerNewTeller(CreateTellerDTO dto) {
         // Tạo và lưu User (Đăng nhập)
         User user = new User();
         user.setFullName(dto.getFullName());
@@ -64,7 +67,7 @@ public class UserService {
         user.setRole(tellerRole);
         userRepository.save(user);
 
-        return new ResEmployeeDTO(
+        return new ResTellerDTO(
                 user.getId(),
                 user.getEmail(),
                 user.getFullName(),
@@ -73,9 +76,9 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponseDTO<ResEmployeeDTO> getAllEmployees(Pageable pageable, String keyword) {
+    public PageResponseDTO<ResTellerDTO> getAllTellers(Pageable pageable, String keyword) {
         Specification<User> spec = GenericSpecification.<User>equal("active", true);
-        spec = spec.and(GenericSpecification.<User>equal("role.name", RoleName.ROLE_TELLER.name()));
+        spec = spec.and((root, query, cb) -> cb.equal(root.join("role").get("name"), RoleName.ROLE_TELLER));
         if (keyword != null && !keyword.isBlank()) {
             Specification<User> keywordSpec = GenericSpecification.<User>like("email", keyword)
                     .or(GenericSpecification.<User>like("fullName", keyword));
@@ -83,14 +86,32 @@ public class UserService {
             spec = spec.and(keywordSpec);
         }
         Page<User> userPage = userRepository.findAll(spec, pageable);
-        List<ResEmployeeDTO> users = userPage.getContent().stream()
-                .map(userMapper::toEmployeeDTO)
+        List<ResTellerDTO> users = userPage.getContent().stream()
+                .map(userMapper::toTellerDTO)
                 .collect(Collectors.toList());
-        return new PageResponseDTO<ResEmployeeDTO>(
+        return new PageResponseDTO<ResTellerDTO>(
                 users,
                 userPage.getTotalElements(),
                 userPage.getTotalPages(),
                 userPage.getNumber() + 1,
                 userPage.getSize());
+    }
+
+    public void changeUserStatus(Long userId, boolean active) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + userId));
+        user.setActive(active);
+        userRepository.save(user);
+    }
+
+    public void updateUser(Long userId, UpdateUserInforDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + userId));
+        user.setFullName(dto.getFullName());
+        user.setEmail(dto.getEmail());
+        userRepository.save(user);
+        String email = user.getEmail();
+        String loginFailKey = "bank:auth:fail_count:login:" + email;
+        stringRedisTemplate.delete(loginFailKey);
     }
 }
