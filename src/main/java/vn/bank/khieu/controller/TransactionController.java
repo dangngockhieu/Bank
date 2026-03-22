@@ -1,9 +1,14 @@
 package vn.bank.khieu.controller;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
@@ -13,7 +18,9 @@ import vn.bank.khieu.dto.request.transaction.deposit_withdrawal.TransactionDTO;
 import vn.bank.khieu.dto.request.transaction.deposit_withdrawal.TransactionOTP;
 import vn.bank.khieu.dto.request.transaction.transfer.TranferOTP;
 import vn.bank.khieu.dto.request.transaction.transfer.TransferDTO;
+import vn.bank.khieu.dto.response.PageResponseDTO;
 import vn.bank.khieu.dto.response.ResStringDTO;
+import vn.bank.khieu.dto.response.transaction.TransactionResponseDTO;
 import vn.bank.khieu.service.TransactionService;
 import vn.bank.khieu.utils.SecurityUtil;
 import vn.bank.khieu.utils.annotation.ApiMessage;
@@ -83,6 +90,22 @@ public class TransactionController {
         transactionService.confirmWithdrawal(tellerEmail, dto);
 
         return ResponseEntity.ok(new ResStringDTO("Rút tiền thành công!"));
+    }
+
+    @GetMapping("/history")
+    @ApiMessage("Lấy lịch sử giao dịch của khách hàng đang đăng nhập")
+    public ResponseEntity<PageResponseDTO<TransactionResponseDTO>> getTransactionHistory(
+            @RequestParam(value = "current", defaultValue = "1") int current,
+            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+        String customerEmail = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new RuntimeException("Chưa đăng nhập"));
+
+        Pageable pageable = PageRequest.of(current - 1, pageSize, Sort.by(Sort.Direction.ASC, "id"));
+
+        PageResponseDTO<TransactionResponseDTO> transactions = transactionService.getMyTransactionHistory(customerEmail,
+                pageable);
+
+        return ResponseEntity.ok(transactions);
     }
 
 }

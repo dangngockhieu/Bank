@@ -1,5 +1,10 @@
 package vn.bank.khieu.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,11 +15,16 @@ import vn.bank.khieu.dto.request.transaction.deposit_withdrawal.TransactionDTO;
 import vn.bank.khieu.dto.request.transaction.deposit_withdrawal.TransactionOTP;
 import vn.bank.khieu.dto.request.transaction.transfer.TranferOTP;
 import vn.bank.khieu.dto.request.transaction.transfer.TransferDTO;
+import vn.bank.khieu.dto.response.PageResponseDTO;
+import vn.bank.khieu.dto.response.transaction.TransactionResponseDTO;
 import vn.bank.khieu.entity.Account;
+import vn.bank.khieu.entity.Transaction;
 import vn.bank.khieu.entity.User;
 import vn.bank.khieu.enums.TransactionStatus;
 import vn.bank.khieu.enums.TransactionType;
+import vn.bank.khieu.mapper.TransactionMapper;
 import vn.bank.khieu.repository.AccountRepository;
+import vn.bank.khieu.repository.TransactionRepository;
 import vn.bank.khieu.utils.OtpUtil;
 
 @Service
@@ -26,6 +36,8 @@ public class TransactionService {
     private final OtpUtil otpUtil;
     private final TransactionHistoryService transactionHistoryService;
     private final NotificationService notificationService;
+    private final TransactionMapper transactionMapper;
+    private final TransactionRepository transactionRepository;
 
     public void initiateTransfer(String senderEmail, TransferDTO dto) {
         Account senderAccount = accountRepository.findByCustomerUserEmail(senderEmail)
@@ -237,5 +249,22 @@ public class TransactionService {
 
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    public PageResponseDTO<TransactionResponseDTO> getMyTransactionHistory(String email, Pageable pageable) {
+        Page<Transaction> transactionPage = transactionRepository.findHistoryByUserEmail(email, pageable);
+
+        // Gọi hàm toDto từ TransactionMapper
+        List<TransactionResponseDTO> dtoList = transactionPage.getContent().stream()
+                .map(transactionMapper::toDto)
+                .collect(Collectors.toList());
+        PageResponseDTO<TransactionResponseDTO> response = new PageResponseDTO<>();
+        response.setCurrentPage(pageable.getPageNumber() + 1);
+        response.setPageSize(pageable.getPageSize());
+        response.setTotalElements(transactionPage.getTotalElements());
+        response.setTotalPages(transactionPage.getTotalPages());
+
+        response.setData(dtoList);
+        return response;
     }
 }
