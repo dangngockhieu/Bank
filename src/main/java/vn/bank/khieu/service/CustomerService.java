@@ -23,6 +23,7 @@ import vn.bank.khieu.repository.AccountRepository;
 import vn.bank.khieu.repository.CustomerRepository;
 import vn.bank.khieu.repository.RoleRepository;
 import vn.bank.khieu.repository.UserRepository;
+import vn.bank.khieu.utils.error.NotFindException;
 
 @RequiredArgsConstructor
 @Service
@@ -55,7 +56,7 @@ public class CustomerService {
 
         // Lấy Role mặc định là CUSTOMER
         Role customerRole = roleRepository.findByName(RoleName.ROLE_CUSTOMER)
-                .orElseThrow(() -> new RuntimeException("Lỗi: Role CUSTOMER chưa được khởi tạo trong Database!"));
+                .orElseThrow(() -> new NotFindException("Lỗi: Role CUSTOMER chưa được khởi tạo trong Database!"));
         user.setRole(customerRole);
         userRepository.save(user);
 
@@ -125,7 +126,7 @@ public class CustomerService {
         // Nếu Redis không có, lấy từ DB
         ResCustomerDTO dto = customerRepository.findByUserEmail(email)
                 .map(this::convertToResCustomerDTO)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+                .orElseThrow(() -> new NotFindException("Không tìm thấy khách hàng"));
 
         // Lưu lại vào Redis
         try {
@@ -145,14 +146,14 @@ public class CustomerService {
     public ResCustomerDTO findCustomer(String keyword) {
         return customerRepository.findCustomerWithUserByKeyword(keyword)
                 .map(this::convertToResCustomerDTO)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+                .orElseThrow(() -> new NotFindException("Không tìm thấy khách hàng"));
     }
 
     @Transactional(readOnly = true)
     public ResBalanceDTO getMyBalance(String email) {
 
         ResBalanceDTO dto = accountRepository.findBalanceByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+                .orElseThrow(() -> new NotFindException("Không tìm thấy tài khoản"));
 
         return dto;
     }

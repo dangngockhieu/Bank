@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import vn.bank.khieu.entity.Notification;
 import vn.bank.khieu.entity.User;
 import vn.bank.khieu.repository.NotificationRepository;
+import vn.bank.khieu.utils.error.NotFindException;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +30,7 @@ public class NotificationService {
 
     public void markAsRead(Long notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found with ID: " + notificationId));
+                .orElseThrow(() -> new NotFindException("Notification not found with ID: " + notificationId));
         notification.setReaded(true);
         notificationRepository.save(notification);
     }

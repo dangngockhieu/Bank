@@ -19,6 +19,7 @@ import vn.bank.khieu.entity.UserSession;
 import vn.bank.khieu.repository.UserRepository;
 import vn.bank.khieu.repository.UserSessionRepository;
 import vn.bank.khieu.utils.SecurityUtil;
+import vn.bank.khieu.utils.error.NotFindException;
 
 @Service
 @RequiredArgsConstructor
@@ -48,7 +49,7 @@ public class AuthService {
     @Transactional
     public void updateUserToken(String email, String refreshToken) {
         User user = this.userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFindException("User not found"));
 
         stringRedisTemplate.delete("bank:auth:session:" + email);
 
@@ -79,7 +80,7 @@ public class AuthService {
     public void revokeToken(String email) {
         // Khóa trong DB
         User user = this.userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new NotFindException("User không tồn tại"));
         userSessionRepository.findByUserId(user.getId()).ifPresent(session -> {
             session.setRevoked(true);
             userSessionRepository.save(session);
@@ -95,7 +96,7 @@ public class AuthService {
 
     public void sendEmailResetPassword(String email) {
         User user = this.userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
+                .orElseThrow(() -> new NotFindException("Email không tồn tại"));
 
         String lockKey = "bank:otp:lock:reset:" + email;
         String otpKey = "bank:otp:token:reset:" + email;
@@ -132,7 +133,7 @@ public class AuthService {
         stringRedisTemplate.delete(otpKey);
 
         User user = this.userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+                .orElseThrow(() -> new NotFindException("Không tìm thấy người dùng"));
 
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         userRepository.save(user);

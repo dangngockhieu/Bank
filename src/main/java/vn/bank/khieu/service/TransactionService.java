@@ -26,6 +26,7 @@ import vn.bank.khieu.mapper.TransactionMapper;
 import vn.bank.khieu.repository.AccountRepository;
 import vn.bank.khieu.repository.TransactionRepository;
 import vn.bank.khieu.utils.OtpUtil;
+import vn.bank.khieu.utils.error.NotFindException;
 
 @Service
 @RequiredArgsConstructor
@@ -74,10 +75,10 @@ public class TransactionService {
 
             // Lấy thông tin tài khoản
             senderAccount = accountRepository.findByCustomerUserEmail(senderEmail)
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản người gửi"));
+                    .orElseThrow(() -> new NotFindException("Không tìm thấy tài khoản người gửi"));
 
             recipientAccount = accountRepository.findByAccountNumber(dto.getRecipientAccountNumber())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản người nhận"));
+                    .orElseThrow(() -> new NotFindException("Không tìm thấy tài khoản người nhận"));
 
             // Kiểm tra lại số dư
             if (senderAccount.getBalance().compareTo(dto.getAmount()) < 0) {
@@ -132,7 +133,7 @@ public class TransactionService {
 
     public void initiateDeposit(EmailDTO emailDTO) {
         accountRepository.findByCustomerUserEmail(emailDTO.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản khách hàng"));
+                .orElseThrow(() -> new NotFindException("Không tìm thấy tài khoản khách hàng"));
         // Gửi OTP
         otpUtil.sendEmailOTP(emailDTO.getEmail());
     }
@@ -150,7 +151,7 @@ public class TransactionService {
 
             // Lấy thông tin tài khoản
             account = accountRepository.findByCustomerUserEmail(dto.getCustomerEmail())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản khách hàng"));
+                    .orElseThrow(() -> new NotFindException("Không tìm thấy tài khoản khách hàng"));
 
             // Cộng tiền (BigDecimal)
             account.setBalance(account.getBalance().add(dto.getAmount()));

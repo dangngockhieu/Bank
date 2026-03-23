@@ -25,6 +25,7 @@ import vn.bank.khieu.mapper.UserMapper;
 import vn.bank.khieu.repository.RoleRepository;
 import vn.bank.khieu.repository.UserRepository;
 import vn.bank.khieu.utils.GenericSpecification;
+import vn.bank.khieu.utils.error.NotFindException;
 
 @RequiredArgsConstructor
 @Service
@@ -44,7 +45,7 @@ public class UserService {
             throw new IllegalArgumentException("Passwords do not match");
         }
         User existingUser = this.userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + email));
+                .orElseThrow(() -> new NotFindException("Không tìm thấy User với ID: " + email));
         boolean isMatch = passwordEncoder.matches(updatePasswordDTO.getOldPassword(), existingUser.getPassword());
         if (!isMatch) {
             throw new IllegalArgumentException("Mật khẩu không chính xác");
@@ -63,7 +64,7 @@ public class UserService {
 
         // Lấy Role mặc định là TELLER
         Role tellerRole = roleRepository.findByName(RoleName.ROLE_TELLER)
-                .orElseThrow(() -> new RuntimeException("Lỗi: Role TELLER chưa được khởi tạo trong Database!"));
+                .orElseThrow(() -> new NotFindException("Lỗi: Role TELLER chưa được khởi tạo trong Database!"));
         user.setRole(tellerRole);
         userRepository.save(user);
 
@@ -99,14 +100,14 @@ public class UserService {
 
     public void changeUserStatus(Long userId, boolean active) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + userId));
+                .orElseThrow(() -> new NotFindException("Không tìm thấy User với ID: " + userId));
         user.setActive(active);
         userRepository.save(user);
     }
 
     public void updateUser(Long userId, UpdateUserInforDTO dto) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + userId));
+                .orElseThrow(() -> new NotFindException("Không tìm thấy User với ID: " + userId));
         user.setFullName(dto.getFullName());
         user.setEmail(dto.getEmail());
         userRepository.save(user);
