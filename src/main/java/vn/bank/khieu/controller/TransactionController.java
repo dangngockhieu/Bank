@@ -4,6 +4,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,6 +35,7 @@ public class TransactionController {
 
     // Customer chuyển tiền
     @PostMapping("/transfer/initiate")
+    @PreAuthorize("hasAnyRole('TELLER')")
     @ApiMessage("Khởi tạo chuyển tiền và gửi mã OTP")
     public ResponseEntity<ResStringDTO> initiateTransfer(@Valid @RequestBody TransferDTO dto) {
         String senderEmail = SecurityUtil.getCurrentUserLogin()
@@ -46,6 +48,7 @@ public class TransactionController {
 
     // Customer chuyển tiền xác nhận OTP
     @PostMapping("/transfer/confirm")
+    @PreAuthorize("hasAnyRole('TELLER')")
     @ApiMessage("Xác nhận OTP và thực hiện chuyển khoản")
     public ResponseEntity<ResStringDTO> confirmTransfer(@Valid @RequestBody TranferOTP dto) {
         String senderEmail = SecurityUtil.getCurrentUserLogin()
@@ -57,6 +60,7 @@ public class TransactionController {
     }
 
     @PostMapping("/deposit")
+    @PreAuthorize("hasAnyRole('TELLER')")
     @ApiMessage("Khởi tạo gửi tiền và gửi mã OTP")
     public ResponseEntity<ResStringDTO> initiateDeposit(@Valid @RequestBody EmailDTO emailDTO) {
         transactionService.initiateDeposit(emailDTO);
@@ -64,6 +68,7 @@ public class TransactionController {
     }
 
     @PostMapping("/deposit/confirm")
+    @PreAuthorize("hasAnyRole('TELLER')")
     @ApiMessage("Xác nhận OTP và thực hiện gửi tiền")
     public ResponseEntity<ResStringDTO> confirmDeposit(@Valid @RequestBody TransactionOTP dto) {
         String tellerEmail = SecurityUtil.getCurrentUserLogin()
@@ -75,6 +80,7 @@ public class TransactionController {
     }
 
     @PostMapping("/withdrawal")
+    @PreAuthorize("hasAnyRole('TELLER')")
     @ApiMessage("Khởi tạo rút tiền và gửi mã OTP")
     public ResponseEntity<ResStringDTO> initiateWithdrawal(@Valid @RequestBody TransactionDTO dto) {
         transactionService.initiateWithdrawal(dto);
@@ -82,6 +88,7 @@ public class TransactionController {
     }
 
     @PostMapping("/withdrawal/confirm")
+    @PreAuthorize("hasAnyRole('TELLER')")
     @ApiMessage("Xác nhận OTP và thực hiện rút tiền")
     public ResponseEntity<ResStringDTO> confirmWithdrawal(@Valid @RequestBody TransactionOTP dto) {
         String tellerEmail = SecurityUtil.getCurrentUserLogin()
@@ -93,6 +100,7 @@ public class TransactionController {
     }
 
     @GetMapping("/history")
+    @PreAuthorize("hasAnyRole('CUSTOMER')")
     @ApiMessage("Lấy lịch sử giao dịch của khách hàng đang đăng nhập")
     public ResponseEntity<PageResponseDTO<TransactionResponseDTO>> getTransactionHistory(
             @RequestParam(value = "current", defaultValue = "1") int current,

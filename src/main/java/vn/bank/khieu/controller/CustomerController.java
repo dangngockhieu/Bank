@@ -2,6 +2,7 @@ package vn.bank.khieu.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,6 +26,7 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @PostMapping()
+    @PreAuthorize("hasAnyRole('TELLER')")
     @ApiMessage("Đăng ký khách hàng mới")
     public ResponseEntity<ResCustomerDTO> CreateNewCustomer(@Valid @RequestBody CreateCustomerDTO dto) {
         ResCustomerDTO res = customerService.registerNewCustomer(dto);
@@ -32,6 +34,7 @@ public class CustomerController {
     }
 
     @GetMapping("/my-profile")
+    @PreAuthorize("hasAnyRole('CUSTOMER')")
     @ApiMessage("Lấy thông tin cá nhân của khách hàng đang đăng nhập")
     public ResponseEntity<ResCustomerDTO> getMyProfile() {
         String email = SecurityUtil.getCurrentUserLogin().orElse(null);
@@ -41,12 +44,14 @@ public class CustomerController {
 
     @GetMapping()
     @ApiMessage("Lấy thông tin khách hàng")
+    @PreAuthorize("hasAnyRole('TELLER')")
     public ResponseEntity<ResCustomerDTO> getCustomerProfile(@RequestParam String keyword) {
         ResCustomerDTO res = customerService.findCustomer(keyword);
         return ResponseEntity.ok(res);
     }
 
     @GetMapping("/balance")
+    @PreAuthorize("hasAnyRole('CUSTOMER')")
     @ApiMessage("Lấy số dư tài khoản của khách hàng đang đăng nhập")
     public ResponseEntity<ResBalanceDTO> getMyBalance() {
         String email = SecurityUtil.getCurrentUserLogin().orElse(null);

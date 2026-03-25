@@ -7,6 +7,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -164,6 +165,7 @@ public class AuthController {
         }
 
         @PostMapping("/revoke")
+        @PreAuthorize("hasAnyRole('TELLER', 'ADMIN')")
         @ApiMessage("Nhân viên thu hồi quyền truy cập của khách hàng")
         public ResponseEntity<ResStringDTO> revokeToken(@Valid @RequestBody EmailDTO emailDTO) {
                 this.authService.revokeToken(emailDTO.getEmail());

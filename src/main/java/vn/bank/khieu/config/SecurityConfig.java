@@ -43,20 +43,17 @@ public class SecurityConfig {
                                 .cors(Customizer.withDefaults())
                                 .authorizeHttpRequests(
                                                 authz -> authz
-                                                                // // CÁC API ADMIN
-                                                                // .requestMatchers("/api/v1/admin/**")
-                                                                // .hasRole("ADMIN")
-                                                                // // CÁC API CỦA USER (USER và ADMIN đều được vào)
-                                                                // .requestMatchers("/api/v1/user/**")
-                                                                // .hasAnyRole("CUSTOMER", "ADMIN")
+                                                                // API PUBLIC
+                                                                .requestMatchers("/api/auth/login",
+                                                                                "/api/auth/refresh-token")
+                                                                .permitAll()
+                                                                .requestMatchers("/api/auth/send-reset-password-email",
+                                                                                "/api/auth/reset-password")
+                                                                .permitAll()
+                                                                .requestMatchers("/", "/storage/**", "/v3/api-docs/**",
+                                                                                "/swagger-ui/**")
+                                                                .permitAll()
 
-                                                                // CÁC API Public
-                                                                .requestMatchers("/api/auth/**").permitAll()
-                                                                .requestMatchers("/api/users/**").permitAll()
-                                                                .requestMatchers("/api/customers/**").permitAll()
-                                                                .requestMatchers("/storage/**").permitAll()
-
-                                                                .requestMatchers("/").permitAll()
                                                                 .anyRequest().authenticated())
                                 .addFilterAfter(jwtBlacklistFilter, BearerTokenAuthenticationFilter.class)
                                 .oauth2ResourceServer(oauth2 -> oauth2

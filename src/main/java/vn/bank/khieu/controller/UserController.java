@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,6 +42,7 @@ public class UserController {
     }
 
     @PostMapping("/create-tellers")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @ApiMessage("Tạo tài khoản nhân viên mới")
     public ResponseEntity<ResTellerDTO> CreateNewTeller(@Valid @RequestBody CreateTellerDTO dto) {
         ResTellerDTO res = userService.registerNewTeller(dto);
@@ -48,6 +50,7 @@ public class UserController {
     }
 
     @GetMapping("/tellers")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @ApiMessage("Lấy danh sách nhân viên")
     public ResponseEntity<PageResponseDTO<ResTellerDTO>> getAllUsers(
             @RequestParam(value = "current", defaultValue = "1") int current,
@@ -59,6 +62,7 @@ public class UserController {
     }
 
     @PatchMapping("/change-status")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @ApiMessage("Thay đổi trạng thái hoạt động của nhân viên")
     public ResponseEntity<ResStringDTO> changeUserStatus(@RequestParam Long userId, @RequestParam boolean active) {
         userService.changeUserStatus(userId, active);
@@ -67,6 +71,7 @@ public class UserController {
     }
 
     @PatchMapping("/update-user-info/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @ApiMessage("Cập nhật thông tin người dùng")
     public ResponseEntity<ResStringDTO> updateUserInformation(@PathVariable Long userId,
             @Valid @RequestBody UpdateUserInforDTO dto) {
