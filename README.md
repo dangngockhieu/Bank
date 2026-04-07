@@ -8,6 +8,14 @@ Hệ thống được tối ưu hóa để xử lý các vấn đề **tranh ch�
 
 ---
 
+## Luồng nghiệp vụ
+
+![Luồng nghiệp vụ](images/sequence.jpg)
+
+This sequence diagram demonstrates the core transfer logic and real-time notification mechanism of the Mini Bank backend.
+
+---
+
 ## Tính năng
 
 ### 1. Ngăn chặn Double Spending bằng Optimistic Locking
